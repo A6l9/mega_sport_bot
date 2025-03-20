@@ -10,7 +10,7 @@ class  ProjectSettings(BaseSettings):
     db_user: str = Field(alias="db_user")
     db_pass: str = Field(alias="db_pass")
     bot_token: str = Field(alias="bot_token")
-    channel_id: int = Field(alias="channel_id")
-    chat_id: int = Field(alias="chat_id")
+    admins_group_id: int = Field(alias="admins_group_id")
+    discussion_group_id: int = Field(aslias="discussion_group_id")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
