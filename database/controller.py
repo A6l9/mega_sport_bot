@@ -25,7 +25,7 @@ class DatabaseInterface:
     async def add_row(self, model: Any, **kwargs) -> Base:
         async with self.async_session() as session:
             row = model(**kwargs)
-            session.add()
+            session.add(row)
             try:
                 await session.commit()
                 return row
@@ -58,7 +58,7 @@ class DatabaseInterface:
     
     async def change_challenges_status(self, challenge_ids: list, status: bool) -> None:
         async with self.async_session() as session:
-            await session.execute(update(Challenges).where(Challenges.id.in_(challenge_ids)).values(status=status))
+            await session.execute(update(Challenges).where(Challenges.challenge_id.in_(challenge_ids)).values(is_ended=status))
         
             try:
                 await session.commit()
