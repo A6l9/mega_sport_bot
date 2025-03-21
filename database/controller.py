@@ -7,7 +7,7 @@ from sqlalchemy.exc import (IntegrityError, OperationalError,
 
 from loader import logger
 from database.db_initial import async_engine, async_session, Base
-from database.models import Challenges, CommentsAnswers
+from database.models import Challenges, Comments
 
 
 class DatabaseInterface:
@@ -44,7 +44,7 @@ class DatabaseInterface:
                 result = row.scalar()
             return result
     
-    async def change_row(self, model: Union[Challenges, CommentsAnswers], id: int, **kwargs) -> None:
+    async def change_row(self, model: Union[Challenges, Comments], id: int, **kwargs) -> None:
         async with self.async_session() as session:
             await session.execute(update(model).where(model.id == id).values(**kwargs))
         
@@ -59,6 +59,18 @@ class DatabaseInterface:
     async def change_challenges_status(self, challenge_ids: list, status: bool) -> None:
         async with self.async_session() as session:
             await session.execute(update(Challenges).where(Challenges.challenge_id.in_(challenge_ids)).values(is_ended=status))
+        
+            try:
+                await session.commit()
+            except (IntegrityError, OperationalError, 
+                    StatementError, TimeoutError, InvalidRequestError) as exc:
+                logger.exception(f"Database error {exc}")
+                logger.debug(f"Failed update {Challenges.__tablename__}")
+                await session.rollback()
+
+    async def change_comments_status(self, comment_id: int, status: bool) -> None:
+        async with self.async_session() as session:
+            await session.execute(update(Comments).where(Comments.comment_id == comment_id).values(is_answered=status))
         
             try:
                 await session.commit()
