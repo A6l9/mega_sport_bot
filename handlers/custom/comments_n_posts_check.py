@@ -15,6 +15,7 @@ from utils.check_keywords_in_message import check_message
 from utils.extract_video_link import extract_video_link
 from utils.send_to_admins import send_to_admins
 from utils.get_video_title import get_video_title
+from utils.gpt_assistant import send_message_to_assistant
 
 
 router = Router(name="check_new_comments")
@@ -30,12 +31,16 @@ async def check_comments_posts_dis_group(message: Message) -> None:
             if message_text:
                 video_link = await extract_video_link(message_text)
                 if video_link:
-                    video_title = await get_video_title(video_link)
-                    #TODO assistant interactions
-                    await send_to_admins(message=video_link, 
-                                         group_id=message.chat.shifted_id, 
-                                         challenge_id=message.message_thread_id,
-                                         comment_id=message.message_id)
+                    video_title = await get_video_title(video_link) or "Нет названия видео"
+                    extracted_data = await send_message_to_assistant(video_title=video_title, 
+                                                                     challenge_text=challenge.challenge_text,
+                                                                     comment_text=message_text)
+                    if extracted_data.get("data"): 
+                        await send_to_admins(message=extracted_data, 
+                                            group_id=message.chat.shifted_id, 
+                                            challenge_id=message.message_thread_id,
+                                            comment_id=message.message_id,
+                                            comment_text=message_text)
             return
     else:
         message_text = message.text or message.caption
