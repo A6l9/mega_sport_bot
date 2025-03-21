@@ -5,12 +5,14 @@ from aiogram.exceptions import ChatNotFound
 from openai import RateLimitError, APIConnectionError, OpenAIError
 
 from loader import logger, client, bot
-from misc.prompts_instructions import ASSISTANT_INSTRUCTION
+from misc.prompts_instructions import ASSISTANT_INSTRUCTION, ASSISTANT_PROMPT
 
 
-async def send_message_message_to_assistant( message: Optional[str]):
+async def send_message_to_assistant(video_title: str, challenge_text: str, comment_text: str):
     try:
-        prompt = f"""Ответь на это сообщение: {message}."""
+        prompt = ASSISTANT_PROMPT.format(comment=comment_text,
+                                         challenge_text=challenge_text,
+                                         video_title=video_title)
         
 
         my_assistant = await client.beta.assistants.create(model="gpt-4o",
