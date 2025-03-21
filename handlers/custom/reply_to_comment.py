@@ -1,18 +1,20 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
-from aiogram.enums import ChatType
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 
 from state_storage.reply_comment_states import States
 from keyboards.cancel_inline_kb import cancel_keyboard
 from loader import bot, logger, proj_settings
+from decorators.check_comment_answer import check_comment_answer
+from database.get_db_interface import db_interface
 
 
 router = Router(name="reply_to_comment")
 
 
 @router.callback_query(F.data.startswith("reply-comment:"))
+@check_comment_answer
 async def reply_to_comment(call: CallbackQuery, state: FSMContext) -> None:
     comment_id = call.data.split(":")[1]
     await call.message.answer("Введите ответ на комментарий 📝", reply_markup=cancel_keyboard())
@@ -32,7 +34,7 @@ async def take_comment_answer(message: Message, state: FSMContext) -> None:
         except TelegramBadRequest as exc:
             logger.debug(exc)
         finally:
-            #TODO Сделать запись в бд о том что на ком ответили
+            await db_interface.change_comments_status(comment_id=int(data["comment_id"]), status=True)
             await state.clear()
     except TelegramBadRequest as exc:
         logger.debug(exc)
