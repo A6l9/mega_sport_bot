@@ -12,5 +12,15 @@ class Challenges(Base):
     date_of_end: Mapped[Date] = mapped_column(Date, nullable=False)
 
 
-class CommentsAnswers(Base):
-    ...
+class Comments(Base):
+    comment_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
+    challenge_name: Mapped[str] = mapped_column(String, nullable=False)
+    full_name: Mapped[str] = mapped_column(String, nullable=False)
+    club_name: Mapped[str] = mapped_column(String, nullable=False)
+    role: Mapped[str] = mapped_column(String, nullable=False)
+    result: Mapped[str] = mapped_column(String, nullable=False)
+    video_link: Mapped[str] = mapped_column(String, nullable=False)
+    comment_text: Mapped[str] = mapped_column(String, nullable=False)
+    is_answered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    comment_answer: Mapped[str] = mapped_column(String, nullable=True)
+
