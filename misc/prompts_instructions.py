@@ -29,12 +29,23 @@ ASSISTANT_INSTRUCTION = """
                         json```
 
                         {{
-                        "challenge_name": "Железная грудь",
-                        "full_name": "Иванов Иван Иванович",
-                        "club": "Геркулес",
-                        "role": "Тренер",
-                        "result": 23,
-                        "link": "https://rutube.ru/video/a44ebc6aa8e5bf0a1a74ade802716a6a/"
+                        "data": {{
+                            "challenge_name": "Железная грудь",
+                            "full_name": "Иванов Иван Иванович",
+                            "club": "Геркулес",
+                            "role": "Тренер",
+                            "result": 23,
+                            "link": "https://rutube.ru/video/a44ebc6aa8e5bf0a1a74ade802716a6a/"
+                            }}
                         }}
                         ```
                         """
+
+ASSISTANT_PROMPT = """
+                    Следуя инструкции извлеки данные из:
+                    Комментария - {comment}
+
+                    Текста челленджа - {challenge_text}
+
+                    Названия видеоролика - {video_title}
+                    """
