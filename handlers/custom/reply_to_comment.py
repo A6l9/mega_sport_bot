@@ -5,7 +5,9 @@ from aiogram.exceptions import TelegramBadRequest
 
 from state_storage.reply_comment_states import States
 from keyboards.cancel_inline_kb import cancel_keyboard
-from loader import bot, logger, proj_settings
+from loader import bot
+from config import proj_settings
+from load_services import logger
 from decorators.check_comment_answer import check_comment_answer
 from database.get_db_interface import db_interface
 
@@ -34,7 +36,9 @@ async def take_comment_answer(message: Message, state: FSMContext) -> None:
         except TelegramBadRequest as exc:
             logger.debug(exc)
         finally:
-            await db_interface.change_comments_status(comment_id=int(data["comment_id"]), status=True)
+            await db_interface.change_comments_status_text_answer(comment_id=int(data["comment_id"]), 
+                                                      comment_answer=message.text,
+                                                      status=True)
             await state.clear()
     except TelegramBadRequest as exc:
         logger.debug(exc)
