@@ -1,7 +1,7 @@
 from functools import wraps 
 from typing import Callable
 
-from loader import proj_settings
+from config import proj_settings
 
 
 def admins_group_access(func: Callable) -> Callable:

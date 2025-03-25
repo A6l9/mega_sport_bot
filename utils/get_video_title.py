@@ -4,7 +4,7 @@ import asyncio
 import aiohttp
 
 from constants import RUTUBE_URL
-from loader import logger
+from load_services import logger
 
 
 async def get_video_title(video_link: str) -> str:

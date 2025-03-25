@@ -1,6 +1,10 @@
+import asyncio
+
 from aiogram.exceptions import TelegramBadRequest
 
-from loader import bot, proj_settings, logger
+from loader import bot
+from load_services import logger
+from config import proj_settings
 from database.models import Comments
 from database.get_db_interface import db_interface
 from keyboards.reply_comment_inline_kb import reply_comment_keyboard
@@ -8,6 +12,8 @@ from keyboards.reply_comment_inline_kb import reply_comment_keyboard
 
 async def send_to_admins(message: str, challenge_id: int, group_id: int, comment_id: int, comment_text: str) -> None:
     challenge_link = f"https://t.me/c/{group_id}/{challenge_id}"
+    
+    message = message.get("data")
 
     challenge_name = message.get("challenge_name") or "Не указано"
     full_name = message.get("full_name") or "Не указано"
@@ -19,7 +25,7 @@ async def send_to_admins(message: str, challenge_id: int, group_id: int, comment
     text = f"Новый комментарий к [челленджу]({challenge_link})\n\n" \
            f"**Название челенджа:** {challenge_name}\n" \
            f"**ФИО:** {full_name}\n" \
-           f"**Член клуба\/Тренер:** {role}\n" \
+           f"**Член клуба\Тренер:** {role}\n" \
            f"**Название клуба:** {club_name}\n" \
            f"**Результат:** {result}\n\n" \
            f"[Ссылка на видео]({video_link})"
@@ -33,8 +39,10 @@ async def send_to_admins(message: str, challenge_id: int, group_id: int, comment
                                    full_name=full_name,
                                    role=role,
                                    club_name=club_name,
-                                   result=result,
+                                   comment_text=comment_text,
+                                   result=str(result),
                                    video_link=video_link,
                                    )
+        await asyncio.sleep(2)
     except TelegramBadRequest as exc:
         logger.debug(exc)
