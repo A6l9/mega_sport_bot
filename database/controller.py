@@ -5,7 +5,7 @@ from sqlalchemy import update
 from sqlalchemy.exc import (IntegrityError, OperationalError, 
                             StatementError, TimeoutError, InvalidRequestError)
 
-from loader import logger
+from load_services import logger
 from database.db_initial import async_engine, async_session, Base
 from database.models import Challenges, Comments
 
@@ -68,9 +68,10 @@ class DatabaseInterface:
                 logger.debug(f"Failed update {Challenges.__tablename__}")
                 await session.rollback()
 
-    async def change_comments_status(self, comment_id: int, status: bool) -> None:
+    async def change_comments_status_text_answer(self, comment_id: int, status: bool, comment_answer: str) -> None:
         async with self.async_session() as session:
-            await session.execute(update(Comments).where(Comments.comment_id == comment_id).values(is_answered=status))
+            await session.execute(update(Comments).where(Comments.comment_id == comment_id).values(is_answered=status, 
+                                                                                                   comment_answer=comment_answer))
         
             try:
                 await session.commit()
