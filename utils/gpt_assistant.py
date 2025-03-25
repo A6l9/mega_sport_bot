@@ -1,10 +1,14 @@
+import re
+import json
 import asyncio
-from typing import Optional
 
-from aiogram.exceptions import ChatNotFound
+from aiogram.exceptions import TelegramBadRequest
 from openai import RateLimitError, APIConnectionError, OpenAIError
 
-from loader import logger, client, bot
+from loader import bot
+from load_services import logger
+from utils.get_async_client import client
+from config import proj_settings
 from misc.prompts_instructions import ASSISTANT_INSTRUCTION, ASSISTANT_PROMPT
 
 
@@ -14,7 +18,6 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
                                          challenge_text=challenge_text,
                                          video_title=video_title)
         
-
         my_assistant = await client.beta.assistants.create(model="gpt-4o",
                                                         instructions=ASSISTANT_INSTRUCTION,
                                                         name="Assistant")
@@ -43,7 +46,10 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
             if keep_retrieving_run.status == "completed":
                 
                 messages = await client.beta.threads.messages.list(thread_id=thread.id)
-                return messages.data[0].content.text.value
+                answer = messages.data[0].content[0].text.value
+                answer = re.sub(r"```json\n(.*?)\n```", r"\1", answer, flags=re.DOTALL)
+                response_data = json.loads(answer)
+                return response_data
             elif keep_retrieving_run.status == "queued" or keep_retrieving_run.status == "in_progress":
                 pass
             else:
@@ -51,13 +57,13 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
                 return None
             await asyncio.sleep(4)
                 
-    # except RateLimitError:
-        # for i_id in USERS_IDS:
-        #     try:
-        #         await bot.send_message(chat_id=i_id, text="Ошибка, средства на балансе OpenAI закончились.\nПожалуйста, пополните баланс.")
-        #     except ChatNotFound:
-        #         logger.debug(f"Не удалось найти пользователя с таким ID {i_id}")
-        # return None
+    except RateLimitError:
+        try:
+            await bot.send_message(chat_id=proj_settings.admins_group_id, 
+                                   text="Ошибка, средства на балансе OpenAI закончились.\nПожалуйста, пополните баланс.")
+        except TelegramBadRequest:
+            logger.debug(f"Не удалось найти пользователя с таким ID {proj_settings.admins_group_id}")
+        return None
     except APIConnectionError as exc:
         logger.debug(f"Failed to connect to OpenAI API: {exc}")
         return None
