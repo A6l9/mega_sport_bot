@@ -11,7 +11,7 @@ def check_comment_answer(func: Callable) -> Callable:
     async def wrapper(*args, **kwargs) -> None:
         call = args[0]
         comment_id = call.data.split(":")[1]
-        comment = await db_interface.get_row(Comments, comment_id=comment_id)
+        comment = await db_interface.get_row(Comments, comment_id=int(comment_id))
         if comment:
             if not comment.is_answered:
                 await func(*args, **kwargs)
