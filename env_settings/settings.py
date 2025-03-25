@@ -12,5 +12,6 @@ class  ProjectSettings(BaseSettings):
     bot_token: str = Field(alias="bot_token")
     admins_group_id: int = Field(alias="admins_group_id")
     discussion_group_id: int = Field(aslias="discussion_group_id")
+    assistant_token: str = Field(alias="assistant_token")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
