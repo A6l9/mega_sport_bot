@@ -10,4 +10,4 @@ async def set_commands() -> Callable:
         BotCommand(command="upload_comments", description="Выгрузить комментарии в Excel")
     ]
 
-    return await bot.set_my_commands(commands=bot_commands, scope=BotCommandScopeAllGroupChats)
+    return await bot.set_my_commands(commands=bot_commands, scope=BotCommandScopeAllGroupChats())
