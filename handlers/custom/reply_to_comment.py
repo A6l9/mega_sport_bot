@@ -5,6 +5,7 @@ from aiogram.exceptions import TelegramBadRequest
 
 from state_storage.reply_comment_states import States
 from keyboards.cancel_inline_kb import cancel_keyboard
+from keyboards.change_delete_comment_inline_kb import change_delete_comment_kb
 from loader import bot
 from config import proj_settings
 from load_services import logger
@@ -19,20 +20,28 @@ router = Router(name="reply_to_comment")
 @check_comment_answer
 async def reply_to_comment(call: CallbackQuery, state: FSMContext) -> None:
     comment_id = call.data.split(":")[1]
-    await call.message.answer("Введите ответ на комментарий 📝", reply_markup=cancel_keyboard())
+    message_with_cancel_kb = await call.message.answer("Введите ответ на комментарий 📝", reply_markup=cancel_keyboard())
     await state.set_state(States.write_comment_answer)
-    await state.set_data(data={"message_id": call.message.message_id, "comment_id": comment_id})
+    await state.set_data(data={"message_id": call.message.message_id, 
+                               "comment_id": comment_id,
+                               "message_with_cancel_kb_id": message_with_cancel_kb.message_id})
 
 
 @router.message(States.write_comment_answer)
 async def take_comment_answer(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     try:
-        await bot.send_message(text=message.text, chat_id=-proj_settings.discussion_group_id,
+        comment_answer = await bot.send_message(text=message.text, chat_id=-proj_settings.discussion_group_id,
                             reply_to_message_id=data["comment_id"])
         await message.answer("Ответ на комментарий был успешно опубликован.")
         try:
-            await bot.edit_message_reply_markup(message_id=data["message_id"], chat_id=-proj_settings.admins_group_id)
+            await bot.edit_message_reply_markup(message_id=data["message_id"], 
+                                                chat_id=-proj_settings.admins_group_id,
+                                                reply_markup=change_delete_comment_kb(comment_id=data["comment_id"],
+                                                                                      reply_id=comment_answer.message_id))
+            await bot.edit_message_reply_markup(chat_id=-proj_settings.admins_group_id,
+                                                message_id=data["message_with_cancel_kb_id"],
+                                                reply_markup=None)
         except TelegramBadRequest as exc:
             logger.debug(exc)
         finally:
@@ -42,5 +51,6 @@ async def take_comment_answer(message: Message, state: FSMContext) -> None:
             await state.clear()
     except TelegramBadRequest as exc:
         logger.debug(exc)
-        await message.answer("Произошла ошибка, повторите попытку позже.")
+        await message.answer("Произошла ошибка. Повторите попытку позже.\n"
+                             "Возможно, комментарий был удален или ответ на него недоступен по другой причине.")
         await state.clear()
