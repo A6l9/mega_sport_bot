@@ -3,6 +3,8 @@ import asyncio
 from aiogram.types import BotCommandScopeAllGroupChats
 
 from loader import dp, bot
+from utils.get_async_client import client
+from utils.get_assistant_storage import assistant_id_storage
 from load_services import logger, request_manager, workers
 from handlers.custom.comments_n_posts_check import router as new_comments_n_posts_router
 from handlers.custom.upload_comments_to_excel import router as upload_comments_router
@@ -10,11 +12,16 @@ from handlers.custom.reply_to_comment import router as reply_comment_router
 from handlers.custom.cancel_handler import router as cancel_router
 from handlers.custom.change_delete_comm_answer import router as change_delete_router
 from database.get_db_interface import db_interface
+from misc.prompts_instructions import ASSISTANT_INSTRUCTION
 from set_commands import set_commands
 
 
 @dp.startup()
 async def on_startup() -> None:
+    my_assistant = await client.beta.assistants.create(model="gpt-4o",
+                                                        instructions=ASSISTANT_INSTRUCTION,
+                                                        name="Assistant")
+    assistant_id_storage.assistant_id = my_assistant.id
     workers = [asyncio.create_task(request_manager.worker()) for _ in range(5)]
     await db_interface.initial()
 

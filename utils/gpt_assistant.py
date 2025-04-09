@@ -9,7 +9,8 @@ from loader import bot
 from load_services import logger
 from utils.get_async_client import client
 from config import proj_settings
-from misc.prompts_instructions import ASSISTANT_INSTRUCTION, ASSISTANT_PROMPT
+from misc.prompts_instructions import ASSISTANT_PROMPT
+from utils.get_assistant_storage import assistant_id_storage
 
 
 async def send_message_to_assistant(video_title: str, challenge_text: str, comment_text: str):
@@ -17,10 +18,6 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
         prompt = ASSISTANT_PROMPT.format(comment=comment_text,
                                          challenge_text=challenge_text,
                                          video_title=video_title)
-        
-        my_assistant = await client.beta.assistants.create(model="gpt-4o",
-                                                        instructions=ASSISTANT_INSTRUCTION,
-                                                        name="Assistant")
 
         thread = await client.beta.threads.create()
         thread_message = await client.beta.threads.messages.create(
@@ -31,7 +28,7 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
 
         run_assistant = await client.beta.threads.runs.create(
                 thread_id=thread.id,
-                assistant_id=my_assistant.id
+                assistant_id=assistant_id_storage.assistant_id
             )
         
         while run_assistant.status in ["queued", "in_progress"]:
@@ -49,6 +46,7 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
                 answer = messages.data[0].content[0].text.value
                 answer = re.sub(r"```json\n(.*?)\n```", r"\1", answer, flags=re.DOTALL)
                 response_data = json.loads(answer)
+                await asyncio.sleep(2)
                 return response_data
             elif keep_retrieving_run.status == "queued" or keep_retrieving_run.status == "in_progress":
                 pass
