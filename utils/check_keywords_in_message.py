@@ -6,6 +6,6 @@ async def check_message(message_text: str) -> bool:
         pattern = r"#\S+"
         result = re.findall(pattern, message_text, re.IGNORECASE)
         if result:
-            if "#TERFIT_Челлендж" in result:
+            if "#terfitchallenge" in result:
                 return True
         return False

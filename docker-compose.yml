@@ -1,7 +1,7 @@
 services:
   database:
     image: postgres
-    container_name: bot_db
+    container_name: megasport_db
     restart: always
     volumes:
       - postgres_data:/var/lib/postgres_data/data
