@@ -25,6 +25,8 @@ router = Router(name="check_new_comments")
 async def check_comments_posts_dis_group(message: Message) -> None:
     if message.message_thread_id:
         challenge = await db_interface.get_row(Challenges, challenge_id=message.message_thread_id)
+        if not challenge:
+            return
         status = await check_challenge_end_date([challenge])
         if not status:
             logger.debug(f"The challenge with ID {challenge.id} is expired.")
