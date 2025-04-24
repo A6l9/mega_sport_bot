@@ -6,7 +6,7 @@ from load_services import logger
 
 
 class RequestManager:
-    def __init__(self, concurrency_limit: int = 5):
+    def __init__(self, concurrency_limit: int = 1):
         self.semaphore = asyncio.Semaphore(concurrency_limit)
         self.tasks_queue = asyncio.Queue()
 
