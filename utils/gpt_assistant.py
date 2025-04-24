@@ -68,3 +68,5 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
     except OpenAIError as exc:
         logger.debug(f"OpenAI API error: {exc}")
         return None
+    except Exception as exc:
+        logger.debug(exc)
