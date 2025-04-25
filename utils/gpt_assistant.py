@@ -1,6 +1,7 @@
 import re
 import json
 import asyncio
+import time
 
 from aiogram.exceptions import TelegramBadRequest
 from openai import RateLimitError, APIConnectionError, OpenAIError
@@ -20,6 +21,7 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
                                          video_title=video_title)
 
         thread = await client.beta.threads.create()
+        logger.debug(f"Adding message to thread {thread.id}")
         thread_message = await client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
@@ -31,7 +33,14 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
                 assistant_id=assistant_id_storage.assistant_id
             )
         
+        start_time = time.time()
+        timeout = 120
+        
         while run_assistant.status in ["queued", "in_progress"]:
+            if time.time() - start_time > timeout:
+                logger.warning(f"Run time out for thread {thread.id}")
+                
+                return None
 
             keep_retrieving_run = await client.beta.threads.runs.retrieve(
                 thread_id=thread.id,
@@ -39,6 +48,8 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
             )
 
             logger.debug(f"Run status: {keep_retrieving_run.status}")
+
+            run_assistant = keep_retrieving_run
 
             if keep_retrieving_run.status == "completed":
                 
@@ -50,7 +61,7 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
             elif keep_retrieving_run.status == "queued" or keep_retrieving_run.status == "in_progress":
                 pass
             else:
-                logger.debug(f"Run status: {keep_retrieving_run.status}")
+                logger.warning(f"Couldn't to get response, status: {keep_retrieving_run.status}")
                 return None
             await asyncio.sleep(4)
                 
