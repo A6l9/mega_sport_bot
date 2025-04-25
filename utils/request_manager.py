@@ -28,5 +28,6 @@ class RequestManager:
                                                 comment_text=comment_text)
             except Exception as exc:
                 logger.debug(exc)
-            finally: 
+            finally:
+                await asyncio.sleep(3)
                 self.tasks_queue.task_done()

@@ -46,7 +46,6 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
                 answer = messages.data[0].content[0].text.value
                 answer = re.sub(r"```json\n(.*?)\n```", r"\1", answer, flags=re.DOTALL)
                 response_data = json.loads(answer)
-                await asyncio.sleep(2)
                 return response_data
             elif keep_retrieving_run.status == "queued" or keep_retrieving_run.status == "in_progress":
                 pass
