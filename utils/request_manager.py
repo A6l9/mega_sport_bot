@@ -34,6 +34,8 @@ class RequestManager:
                         extracted_data = None
 
                     if extracted_data:
+                        logger.debug(f"Extracted data from assistant {extracted_data}")
+                        
                         await send_to_admins(message=extracted_data, 
                                             group_id=group_id, 
                                             challenge_id=challenge_id,
