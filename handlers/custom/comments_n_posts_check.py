@@ -1,5 +1,6 @@
 import calendar
-from datetime import timedelta
+from uuid import uuid4
+from datetime import datetime, timedelta
 
 from pytz import timezone
 from aiogram import F, Router
@@ -9,12 +10,13 @@ from aiogram.enums import ChatType
 
 from database.get_db_interface import db_interface
 from database.models import Challenges
-from load_services import logger, request_manager
+from load_services import logger, request_manager, async_scheduler
 from decorators.disscusion_group_access import disscusion_group_access
 from utils.check_end_date import check_challenge_end_date
 from utils.check_keywords_in_message import check_message
 from utils.extract_video_link import extract_video_link
 from utils.get_video_title import get_video_title
+from utils.pending_comments_processing import pending_comment_processing
 
 
 router = Router(name="check_new_comments")
@@ -36,7 +38,31 @@ async def check_comments_posts_dis_group(message: Message) -> None:
             if message_text:
                 video_link = await extract_video_link(message_text)
                 if video_link:
-                    video_title = await get_video_title(video_link) or "Нет названия видео"
+                    video_title = await get_video_title(video_link)
+                    if not video_title:
+                        logger.debug("Couldn't to get video title, getting the video title will be delayed")
+                        run_date = datetime.now() + timedelta(minutes=10)
+                        task_id = str(uuid4())
+                        async_scheduler.add_job(pending_comment_processing, 
+                                                      trigger="date", 
+                                                      run_date=run_date, 
+                                                      kwargs={
+                                                          "video_link": video_link,
+                                                          "challenge_text": challenge.text_challenge,
+                                                          "message_text": message_text,
+                                                          "message_thread_id": message.message_thread_id,
+                                                          "message_shifted_id": message.chat.shifted_id,
+                                                          "message_id": message.message_id,
+                                                          "task_id": task_id,
+                                                          "amount_retries": 0
+                                                              },
+                                                      id=task_id,
+                                                      misfire_grace_time=3600*48)
+                        
+                        async_scheduler.print_jobs()
+
+                        return None
+
                     logger.debug("Upload a message to assistant")
                     await request_manager.tasks_queue.put((video_title,
                                                            challenge.text_challenge,

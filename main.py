@@ -5,7 +5,7 @@ from aiogram.types import BotCommandScopeAllGroupChats
 from loader import dp, bot
 from utils.get_async_client import client
 from utils.get_assistant_storage import assistant_id_storage
-from load_services import logger, request_manager, workers
+from load_services import logger, request_manager, workers, async_scheduler
 from handlers.custom.comments_n_posts_check import router as new_comments_n_posts_router
 from handlers.custom.upload_comments_to_excel import router as upload_comments_router
 from handlers.custom.reply_to_comment import router as reply_comment_router
@@ -23,6 +23,8 @@ async def on_startup() -> None:
                                                         name="Assistant")
     assistant_id_storage.assistant_id = my_assistant.id
     workers = [asyncio.create_task(request_manager.worker()) for _ in range(5)]
+    async_scheduler.start()
+    async_scheduler.print_jobs()
     await db_interface.initial()
 
 
