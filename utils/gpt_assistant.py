@@ -30,7 +30,8 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
 
         run_assistant = await client.beta.threads.runs.create(
                 thread_id=thread.id,
-                assistant_id=assistant_id_storage.assistant_id
+                assistant_id=assistant_id_storage.assistant_id,
+                temperature=0.1
             )
         
         start_time = time.time()
