@@ -11,7 +11,6 @@ from load_services import logger
 from utils.get_async_client import client
 from config import proj_settings
 from misc.prompts_instructions import ASSISTANT_PROMPT
-from utils.get_assistant_storage import assistant_id_storage
 
 
 async def send_message_to_assistant(video_title: str, challenge_text: str, comment_text: str):
@@ -30,7 +29,7 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
 
         run_assistant = await client.beta.threads.runs.create(
                 thread_id=thread.id,
-                assistant_id=assistant_id_storage.assistant_id,
+                assistant_id=proj_settings.assistant_id,
                 temperature=0.1
             )
         

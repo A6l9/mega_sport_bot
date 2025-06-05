@@ -6,14 +6,17 @@ from load_services import logger
 
 
 class RequestManager:
-    def __init__(self, concurrency_limit: int = 1):
+    def __init__(self, concurrency_limit: int = 5):
         self.semaphore = asyncio.Semaphore(concurrency_limit)
         self.tasks_queue = asyncio.Queue()
         self.MAX_ATTEMPTS = 5
 
     async def worker(self):
+        logger.info("The worker has started")
+
         while True:
             video_title, challenge_text, comment_text, group_id, challenge_id, comment_id = await self.tasks_queue.get()
+            logger.info("Task was reseived successfully")
 
             try:
                 async with self.semaphore:
