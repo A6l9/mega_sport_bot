@@ -11,6 +11,7 @@ from handlers.custom.reply_to_comment import router as reply_comment_router
 from handlers.custom.cancel_handler import router as cancel_router
 from handlers.custom.change_delete_comm_answer import router as change_delete_router
 from database.get_db_interface import db_interface
+from utils.gpt_assistant import create_assistants
 from set_commands import set_commands
 
 
@@ -20,6 +21,7 @@ async def on_startup() -> None:
     async_scheduler.start()
     async_scheduler.print_jobs()
     await db_interface.initial()
+    # await create_assistants()
 
 
 @dp.shutdown()

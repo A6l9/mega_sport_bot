@@ -10,12 +10,12 @@ from loader import bot
 from load_services import logger
 from utils.get_async_client import client
 from config import proj_settings
-from misc.prompts_instructions import ASSISTANT_PROMPT
+from misc import prompts_instructions
 
 
-async def send_message_to_assistant(video_title: str, challenge_text: str, comment_text: str):
+async def send_message_to_assistant(video_title: str, challenge_text: str, comment_text: str, assistant_id: str):
     try:
-        prompt = ASSISTANT_PROMPT.format(comment=comment_text,
+        prompt = prompts_instructions.ASSISTANT_PROMPT.format(comment=comment_text,
                                          challenge_text=challenge_text,
                                          video_title=video_title)
 
@@ -29,7 +29,7 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
 
         run_assistant = await client.beta.threads.runs.create(
                 thread_id=thread.id,
-                assistant_id=proj_settings.assistant_id,
+                assistant_id=assistant_id,
                 temperature=0.1
             )
         
@@ -51,12 +51,9 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
 
             run_assistant = keep_retrieving_run
 
-            if keep_retrieving_run.status == "completed":
-                
-                messages = await client.beta.threads.messages.list(thread_id=thread.id)
-                answer = messages.data[0].content[0].text.value
-                answer = re.sub(r"```json\n(.*?)\n```", r"\1", answer, flags=re.DOTALL)
-                response_data = json.loads(answer)
+            if keep_retrieving_run.status == "requires_action":
+                message = run_assistant.required_action.submit_tool_outputs.tool_calls[0].function.arguments
+                response_data = json.loads(message)
                 return response_data
             elif keep_retrieving_run.status == "queued" or keep_retrieving_run.status == "in_progress":
                 pass
@@ -80,3 +77,12 @@ async def send_message_to_assistant(video_title: str, challenge_text: str, comme
         return None
     except Exception as exc:
         logger.debug(exc)
+
+
+async def create_assistants() -> None:
+    list_of_assistants = prompts_instructions.ASSISTANTS
+
+    for ast in list_of_assistants:
+        assistant = await client.beta.assistants.create(model="gpt-4-turbo",
+                                            **ast, temperature=0.1)
+        logger.info(f"<< {assistant.name} - {assistant.id} >>")
