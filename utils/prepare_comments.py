@@ -1,7 +1,6 @@
-from database.models import Comments
+from database.db_initial import Base
 
-
-async def prepare_comments(comments: list[Comments]) -> dict[list]:
+async def prepare_comments(comments: list[Base]) -> dict[list]:
 
     prepared_comments = {}
 

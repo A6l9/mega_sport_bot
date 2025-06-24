@@ -8,6 +8,7 @@ def disscusion_group_access(func: Callable) -> Callable:
     @wraps(func)
     async def wrapper(*args, **kwargs) -> None:
         message = args[0]
-        if abs(message.chat.id) == proj_settings.discussion_group_id:
+        if abs(message.chat.id) in [proj_settings.terfit_discussion_group_id, 
+                                    proj_settings.athletx_discussion_group_id]:
             await func(*args, **kwargs)
     return wrapper

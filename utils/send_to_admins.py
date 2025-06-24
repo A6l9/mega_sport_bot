@@ -3,51 +3,57 @@ import asyncio
 from aiogram.exceptions import TelegramBadRequest
 
 from loader import bot
+from data_models import AdminMessage
 from load_services import logger
 from config import proj_settings
-from database.models import Comments
+from challenges_config import CHALLENGES_CONFIG
+from database import models
 from database.get_db_interface import db_interface
+from utils.forming_admin_message import forming_message
 from keyboards.reply_comment_inline_kb import reply_comment_keyboard
 
 
-async def send_to_admins(message: str, challenge_id: int, group_id: int, comment_id: int, comment_text: str) -> None:
-    challenge_link = f"https://t.me/c/{group_id}/{challenge_id}"
-    
-    message = message.get("data")
+async def determine_challenge_type(group_id: int) -> str:
+    return "terfit" if int(f"100{group_id}") == proj_settings.terfit_discussion_group_id else "athletx"
 
-    challenge_name = message.get("challenge_name") or "Не указано"
-    full_name = message.get("full_name") or "Не указано"
-    role = message.get("role") or "Не указано"
-    club_name = message.get("club") or "Не указано"
-    result = message.get("result") or "Не указано"
-    video_link = message.get("link")
-    time_of_execution = message.get("time_of_execution") or "Не указано"
 
-    text = f"Новый комментарий к [челленджу]({challenge_link})\n\n" \
-           f"**Название челенджа:** {challenge_name}\n" \
-           f"**ФИО:** {full_name}\n" \
-           f"**Член клуба\Тренер:** {role}\n" \
-           f"**Название клуба:** {club_name}\n" \
-           f"**Результат:** {result}\n" \
-           f"**Время выполнения:** {time_of_execution}\n\n" \
-           f"[Ссылка на видео]({video_link})"
+async def send_to_admins(message: dict, challenge_id: int, group_id: int, 
+                         comment_id: int, comment_text: str, admin_group_id: int) -> None:
+    message_text, admin_message = await forming_message(message, group_id, challenge_id)
+
+    challenge_type = await determine_challenge_type(group_id) 
+
     try:
-        await bot.send_message(chat_id=-proj_settings.admins_group_id,
-                               text=text, 
+        await bot.send_message(chat_id=-admin_group_id,
+                               text=message_text, 
                                parse_mode="markdown", 
-                               reply_markup=reply_comment_keyboard(comment_id))
-        await db_interface.add_row(Comments, 
-                                   comment_id=comment_id,
-                                   challenge_id=challenge_id, 
-                                   challenge_name=challenge_name,
-                                   full_name=full_name,
-                                   role=role,
-                                   club_name=club_name,
-                                   comment_text=comment_text,
-                                   result=str(result),
-                                   time_of_execution=time_of_execution,
-                                   video_link=video_link,
-                                   )
+                               reply_markup=reply_comment_keyboard(comment_id, challenge_type))
+        
+        fields = {
+            "comment_id": comment_id,
+            "challenge_id": challenge_id, 
+            "challenge_name": admin_message['challenge_name'],
+            "full_name": admin_message['full_name'],
+            "comment_text": comment_text,
+            "result": str(admin_message['result']),
+            "video_link": admin_message['video_link'],
+        }
+        model = CHALLENGES_CONFIG[challenge_type]["model_comments"]
+        
+        if challenge_type == "terfit":
+            fields.update({
+                "role": admin_message['role'],
+                "club_name": admin_message['club_name'],
+                "time_of_execution": admin_message['time_of_execution'],
+            })
+
+        else:
+            fields.update({
+                "phone_number": admin_message['phone_number']
+            })
+
+        await db_interface.add_row(model, **fields)
+
         await asyncio.sleep(2)
     except TelegramBadRequest as exc:
         logger.debug(exc)

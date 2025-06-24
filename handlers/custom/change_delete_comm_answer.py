@@ -13,20 +13,25 @@ from loader import bot
 from config import proj_settings
 from load_services import logger
 from database.get_db_interface import db_interface
+from challenges_config import CHALLENGES_CONFIG
 
 
 router = Router(name="change_delete_comment_answer")
 
 
-@router.callback_query(F.data.startswith("edit-comm-answ:"))
+@router.callback_query(F.data.startswith("edit-comm-answ"))
 async def edit_comment_answer_handler(call: CallbackQuery, state: FSMContext) -> None:
     _, comment_id, reply_id = call.data.split(":")
+    challenge_type, _, _ = call.data.split("-")[3].split(":")
     message_with_cancel_kb = await call.message.answer("Введите измененный ответ на комментарий 📝", 
                                                        reply_markup=cancel_keyboard())
     await state.set_state(States.edit_comment_answer)
     await state.set_data(data={"message_id": call.message.message_id, 
                                "comment_id": comment_id, 
                                "reply_id": reply_id,
+                               "discussion_group_id": CHALLENGES_CONFIG[challenge_type]["discussion_group"],
+                               "admins_group_id": CHALLENGES_CONFIG[challenge_type]["admin_group"],
+                               "challenge_type": challenge_type,
                                "message_with_cancel_kb_id": message_with_cancel_kb.message_id
                                })
 
@@ -36,15 +41,16 @@ async def edit_comment_answer_take_answer(message: Message, state: FSMContext) -
     data = await state.get_data()
     try:
         await bot.edit_message_text(text=message.text, 
-                                    chat_id=-proj_settings.discussion_group_id,
+                                    chat_id=-data["discussion_group_id"],
                                     message_id=data["reply_id"])
         await message.answer("Ответ на комментарий был успешно изменен.")
         await state.clear()
         await db_interface.change_comments_status_text_answer(comment_id=int(data["comment_id"]), 
                                                     comment_answer=message.text,
+                                                    model=CHALLENGES_CONFIG[data["challenge_type"]]["model_comments"],
                                                     status=True)
         try:
-            await bot.edit_message_reply_markup(chat_id=-proj_settings.admins_group_id,
+            await bot.edit_message_reply_markup(chat_id=-data["admins_group_id"],
                                                 message_id=data.get("message_with_cancel_kb_id"))
         except TelegramBadRequest as exc:
             logger.debug(exc)
@@ -55,31 +61,40 @@ async def edit_comment_answer_take_answer(message: Message, state: FSMContext) -
         await state.clear()
 
     
-@router.callback_query(F.data.startswith("del-comm-answ:"))
+@router.callback_query(F.data.startswith("del-comm-answ"))
 async def delete_comment_answer_hanlder(call: CallbackQuery, state: FSMContext) -> None:
     _, comment_id, reply_id = call.data.split(":")
+    challenge_type, _, _ = call.data.split("-")[3].split(":")
     await call.message.answer("Вы точно хотите удалить ответ на комментарий?", reply_markup=delete_or_no_keyboard())
     await state.set_state(States.delete_comment_answer)
-    await state.set_data(data={"message_id": call.message.message_id, "comment_id": comment_id, "reply_id": reply_id})
+    await state.set_data(data={"message_id": call.message.message_id, 
+                               "comment_id": comment_id,
+                               "discussion_group_id": CHALLENGES_CONFIG[challenge_type]["discussion_group"],
+                               "admins_group_id": CHALLENGES_CONFIG[challenge_type]["admin_group"],
+                               "challenge_type": challenge_type,
+                               "reply_id": reply_id
+                               })
 
 
 @router.callback_query(F.data == "yes-delete", StateFilter(States.delete_comment_answer))
 async def yes_delete_comment_answer(call: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     try:
-        await bot.delete_message(chat_id=-proj_settings.discussion_group_id,
+        await bot.delete_message(chat_id=-data["discussion_group_id"],
                                 message_id=data["reply_id"])
         await call.message.answer("Ответ на комментарий был успешно удален.")
         try:
             await bot.edit_message_reply_markup(message_id=data["message_id"], 
-                                                chat_id=-proj_settings.admins_group_id,
-                                                reply_markup=reply_comment_keyboard(message_id=data["comment_id"]))
+                                                chat_id=-data["admins_group_id"],
+                                                reply_markup=reply_comment_keyboard(message_id=data["comment_id"], 
+                                                                                    challenge_type=data["challenge_type"]))
             await call.message.edit_reply_markup(reply_markup=None)
         except TelegramBadRequest as exc:
             logger.debug(exc)
         finally:
             await db_interface.change_comments_status_text_answer(comment_id=int(data["comment_id"]), 
                                                       comment_answer=None,
+                                                      model=CHALLENGES_CONFIG[data["challenge_type"]]["model_comments"],
                                                       status=False)
             await state.clear()
     except TelegramBadRequest as exc:

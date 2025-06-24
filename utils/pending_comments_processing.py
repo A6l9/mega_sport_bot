@@ -1,13 +1,8 @@
 from uuid import uuid4
 from datetime import datetime, timedelta
 
-from aiogram.types import Message
-from apscheduler.triggers.date import DateTrigger
-
 from utils.get_video_title import get_video_title
 from load_services import request_manager, logger
-from database.models import Challenges
-from database.get_db_interface import db_interface
 
 
 async def pending_comment_processing(video_link: str, 
@@ -17,7 +12,9 @@ async def pending_comment_processing(video_link: str,
                                      message_shifted_id: int,
                                      message_id: int,
                                      task_id: str,
-                                     amount_retries: int) -> None:
+                                     assistant_id: str,
+                                     amount_retries: int,
+                                     admin_group_id: int) -> None:
     from load_services import async_scheduler
 
     logger.debug("Starting to process the pending task")
@@ -29,7 +26,7 @@ async def pending_comment_processing(video_link: str,
         
         logger.debug(f"Couldn't to get video title, getting the video title will be delayed. Try no. {amount_retries + 1}")
 
-        run_date = datetime.now() + timedelta(minutes=10)
+        run_date = datetime.now() + timedelta(minutes=1)
         async_scheduler.add_job(pending_comment_processing, 
                                                       trigger="date", 
                                                       run_date=run_date, 
@@ -41,6 +38,8 @@ async def pending_comment_processing(video_link: str,
                                                           "message_shifted_id": message_shifted_id,
                                                           "message_id": message_id,
                                                           "task_id": task_id,
+                                                          "assistant_id": assistant_id,
+                                                          "admin_group_id": admin_group_id,
                                                           "amount_retries": amount_retries + 1
                                                               },
                                                       id=task_id,
@@ -57,7 +56,9 @@ async def pending_comment_processing(video_link: str,
                                             message_text,
                                             message_shifted_id,
                                             message_thread_id,
-                                            message_id))
+                                            message_id,
+                                            assistant_id,
+                                            admin_group_id))
 
     async_scheduler.print_jobs() 
 

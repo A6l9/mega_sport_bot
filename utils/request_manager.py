@@ -3,6 +3,7 @@ import asyncio
 from utils.gpt_assistant import send_message_to_assistant
 from utils.send_to_admins import send_to_admins
 from load_services import logger
+from loader import proj_settings
 
 
 class RequestManager:
@@ -15,8 +16,10 @@ class RequestManager:
         logger.info("The worker has started")
 
         while True:
-            video_title, challenge_text, comment_text, group_id, challenge_id, comment_id = await self.tasks_queue.get()
-            logger.info("Task was reseived successfully")
+            (video_title, challenge_text,
+            comment_text, group_id,
+            challenge_id, comment_id, assistant_id, admin_group_id) = await self.tasks_queue.get()
+            logger.info("Task was reсeived successfully")
 
             try:
                 async with self.semaphore:
@@ -26,8 +29,9 @@ class RequestManager:
                         try:
                             extracted_data = await send_message_to_assistant(video_title=video_title, 
                                                                         challenge_text=challenge_text,
-                                                                        comment_text=comment_text)
-                            if extracted_data and extracted_data.get("data"):
+                                                                        comment_text=comment_text,
+                                                                        assistant_id=assistant_id)
+                            if extracted_data:
                                     break
                         except Exception as exc:
                             logger.warning(f"Task failed {exc}")
@@ -43,7 +47,8 @@ class RequestManager:
                                             group_id=group_id, 
                                             challenge_id=challenge_id,
                                             comment_id=comment_id,
-                                            comment_text=comment_text)
+                                            comment_text=comment_text,
+                                            admin_group_id=admin_group_id)
             except Exception as exc:
                 logger.warning(exc)
             finally:
